@@ -209,7 +209,7 @@ class PlanetMetadata:
         """
         if source == '.IMG' or source == '.LBL':
             self._readTextMetadataPDS(path)
-        elif source[:6] == 'geotif':
+        elif source[-6:] == 'geotif':
             self._readFromWGS84Geotiff(path)
         else:
             raise TypeError('Invalid/unsupported source ({}) of planetary data.'.format(source))
