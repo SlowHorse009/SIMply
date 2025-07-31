@@ -429,8 +429,10 @@ class PlanetDTM:
             e = self.elevationData
         if np.issubdtype(e.dtype, np.integer):
             e = e.astype(float)
-        e[e < vmin] = np.nan
-        e[e > vmax] = np.nan
+        if vmin is not None:
+            e[e < vmin] = np.nan
+        if vmax is not None:
+            e[e > vmax] = np.nan
 
         if dsf != 1:
             long = long[::dsf]
