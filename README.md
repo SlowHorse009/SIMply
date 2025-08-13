@@ -24,8 +24,11 @@ In both cases, it is also necessary to ensure the following dependencies are ins
 - [matplotlib](https://matplotlib.org/)
 - [gdal](https://pypi.org/project/GDAL/) (optional, for working with geotifs)
 
+## Software Paper
+SIMply has an accompanying peer-reviewed journal [paper](https://doi.org/10.34133/space.0319) describing its capabilities, showcasing example simulations, and providing validation/verification of SIMply's physical accuracy. The paper is published in the Space: Science & Technology journal, and is accessible [here](https://doi.org/10.34133/space.0319). 
+
 ## Usage
-See the examples.py file for simple examples of how to set up and run image simulations.
+See the examples.py file for simple examples of how to set up and run image simulations. More detailed examples and user guides will be released in the near future.
 
 ## Acknowledgements
 
