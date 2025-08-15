@@ -14,7 +14,7 @@ def dataDirPath():
 
 def dataFilePath(sub_dirs: List[str], file_name: str):
     """ Returns the absolute path to a file in the SIMply data directory given its file name and any subdirectories
-     it is in within the data directory.
+    it is in within the data directory.
 
     :param sub_dirs: ordered list of any subdirectories in which the file is located
     :param file_name: filename of the file
