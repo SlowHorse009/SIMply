@@ -7,9 +7,10 @@ from coremaths import math2
 from coremaths.vector import Vec3
 from coremaths.ray import Ray
 from rendering.renderables import RenderableObject, RenderableScene
-from cameras.cameras import Camera, CameraTwoWay
+from cameras.cameras import CameraTwoWay
 from radiometry import radiometry as rd
 from radiometry.radiometry import SpectralDensityCurve as SDC
+from rendering.lights import Light
 from typing import List, Optional, Tuple, Union
 
 
@@ -35,14 +36,24 @@ class Renderer:
         containing (1) the intersection dictionary returned by performing an intersection of the rays with the scene
         (see RenderableScene.intersect(...) documentation for further details) and (2) a view dictionary containing, for
         each ray, the xyz coordinate of intersection (key='p_hit'), normalised vector from intersection point to light
-        source (key='to_light'), whether the point of intersection is in shadow from the scene's light source for each
-        secondary ray (key='shadow'). More details on these contents of the view dictionary are given below.
+        source(s) (key='to_light', see below for further details), whether the point of intersection is in shadow from
+        the scene's light source(s) for each secondary ray (key='shadow', see below for further details). More details
+        on the contents of the view dictionary are given below.
 
-        View dictionary details:
-        For a ray object with numpy shape s (e.g. s would be (1000, 1000) for rendering an image with 1000x1000 primary
-        rays), view['p_hit'] is a Vec3 object with numpy shape s; view['to_light] is a Vec3 object with numpy shape
-        (n_shad,) + s if n_shad > 1, and shape s if n_shad <= 1; view['shadow'] is a numpy array with shape
-        (n_shad,) + s if n_shad > 1, and shape s if n_shad <= 1.
+        view dictionary details:
+
+        -For a ray object with numpy shape s (e.g. s would be (1000, 1000) for rendering an image with 1000x1000
+        primary rays), view['p_hit'] is a Vec3 object with numpy shape s.
+
+        -If the scene has one light source, view['to_light'] is a Vec3 object with numpy shape (n_shad,) + s if
+        n_shad > 1, and shape s if n_shad <= 1; view['shadow'] is a numpy array with shape (n_shad,) + s if n_shad > 1,
+        and shape s if n_shad <= 1.
+
+        -If the scene has multiple light sources, view['to_light'] is a list with length equal to number of light
+        sources, where each element of the list is a Vec3 object with numpy shape (n_shad,) + s if n_shad > 1, and shape
+        s if n_shad <= 1; view['shadow'] is a list with length equal to number of light
+        sources, where each element of the list is a numpy array with shape (n_shad,) + s if n_shad > 1,
+        and shape s if n_shad <= 1.
 
         :param scene: the scene
         :param ray: the ray(s) (for multiple rays use a single Ray object with numpy arrays as its vector components)
@@ -57,28 +68,43 @@ class Renderer:
         pHit = scene.pIntersection(intersection)
         view = {'p_hit': pHit}
 
-        if scene.light is not None:  # scene has a light, so get details of illumination at the viewed scene points
+        if scene.light is not None:  # scene has light(s); get details of illumination at the viewed scene points
             pHit = pHit + e * -ray.d.projectedOnto(n).norm  # shift pHit to mitigate floating point error self-shadowing
-            if n_shad == 0:  # no shadow testing
-                shadow = np.full(ray.numpyShape, 0)
-                ls = (scene.light.pos - pHit).norm
-            else:
-                if n_shad == 1:  # shadow testing with 1 secondary ray per primary ray
-                    rayToLight = scene.light.traceRayToCentre(pHit)
-                else:  # shadow testing with multiple secondary rays per primary ray
-                    x = np.repeat(pHit.x[None], n_shad, axis=0)
-                    y = np.repeat(pHit.y[None], n_shad, axis=0)
-                    z = np.repeat(pHit.z[None], n_shad, axis=0)
-                    origShape = pHit.numpyShape
-                    stackShape = (n_shad,) + origShape
-                    pAdjusted = Vec3((x, y, z))
-                    index = np.arange(n_shad).repeat(origShape[0] * origShape[1]).reshape(stackShape)
-                    rayToLight = scene.light.traceRayDistributed(pAdjusted, index, n_shad)
-                ls = rayToLight.d
-                retShadTest = scene.intersect(rayToLight)
-                shadow = ~np.isnan(retShadTest['t_hit'])
-            view['to_light'] = ls
-            view['shadow'] = shadow
+
+            def _getIlluminationConditions(_light: Light):
+                if n_shad == 0:  # no shadow testing
+                    _shadow = np.full(ray.numpyShape, 0)
+                    _ls = (_light.pos - pHit).norm
+                else:
+                    if n_shad == 1:  # shadow testing with 1 secondary ray per primary ray
+                        _rayToLight = _light.traceRayToCentre(pHit)
+                    else:  # shadow testing with multiple secondary rays per primary ray
+                        _x = np.repeat(pHit.x[None], n_shad, axis=0)
+                        _y = np.repeat(pHit.y[None], n_shad, axis=0)
+                        _z = np.repeat(pHit.z[None], n_shad, axis=0)
+                        _origShape = pHit.numpyShape
+                        _stackShape = (n_shad,) + _origShape
+                        _pSurface = Vec3((_x, _y, _z))
+                        _index = np.arange(n_shad).repeat(_origShape[0] * _origShape[1]).reshape(_stackShape)
+                        _rayToLight = _light.traceRayDistributed(_pSurface, _index, n_shad)
+                    _ls = _rayToLight.d
+                    _retShadTest = scene.intersect(_rayToLight)
+                    _shadow = ~np.isnan(_retShadTest['t_hit'])
+                return _ls, _shadow
+
+            if type(scene.light) is list or type(scene.light) is tuple:  # scene has multiple lights
+                toLightList: List[np.ndarray] = []
+                shadowList: List[np.ndarray] = []
+                for light in scene.light:
+                    ls, shadow = _getIlluminationConditions(light)
+                    toLightList += [ls]
+                    shadowList += [shadow]
+                view['to_light'] = toLightList
+                view['shadow'] = shadowList
+            else:  # scene has only one light
+                ls, shadow = _getIlluminationConditions(scene.light)
+                view['to_light'] = ls
+                view['shadow'] = shadow
 
         return intersection, view
 
@@ -174,9 +200,10 @@ class Renderer:
             return getTexImageForChannel(rgb_channel)
 
     @staticmethod
-    def shadow(scene: _RS, camera: _Cam, sf=1, n_shad=1, e=5e-4, lim: _Lims = None):
-        """ For the given renderable scene and camera, this function renders an image showing any regions
-        of the scene that are in shadow.
+    def shadow(scene: _RS, camera: _Cam, sf=1, n_shad=1, e=5e-4, lim: _Lims = None) \
+            -> Union[np.ndarray, List[np.ndarray]]:
+        """ For the given renderable scene and camera, this function renders an image (or images) showing any regions
+        of the scene that are in shadow from the scenes light source (or light sources).
 
         :param scene: the scene
         :param camera: the camera
@@ -188,7 +215,8 @@ class Renderer:
             of the detector. All other regions of the detector will be treated as seeing zero radiance. Use this to
             increase render speed and/or reduce memory required for rendering the radiance image when for example all
             sources of radiance are known to sit within a limited region of the image.
-        :return: shadow mask
+        :return: shadow mask (if scene has one light source) or list of shadow masks (if scene has multiple light
+            sources).
         """
         if scene.light is None:
             raise ValueError('scene must have a light source to render a shadow image')
@@ -198,18 +226,29 @@ class Renderer:
         rays = camera.pixelsLOS(sf=sf, region=lim)
 
         _, view = Renderer.getView(scene, rays, n_shad, e)
-        shadow = view['shadow']
 
-        if n_shad > 1:
-            shadow = np.sum(shadow, axis=0) / n_shad
-
-        if lim is not None:
-            fullSize = np.zeros((camera.dr * sf, camera.dc * sf))
-            minC, maxC, minR, maxR = lim
-            fullSize[minR * sf:maxR * sf, minC * sf:maxC * sf] = shadow
-            shadow = fullSize
-
-        return shadow
+        if scene.hasMultipleLights:
+            shadowImgs = []
+            for shadowArr in view['shadow']:
+                if n_shad > 1:
+                    shadowArr = np.sum(shadowArr, axis=0) / n_shad
+                if lim is not None:
+                    fullSize = np.zeros((camera.dr * sf, camera.dc * sf))
+                    minC, maxC, minR, maxR = lim
+                    fullSize[minR * sf:maxR * sf, minC * sf:maxC * sf] = shadowArr
+                    shadowArr = fullSize
+                shadowImgs += [shadowArr]
+            return shadowImgs
+        else:  # scene has a single light source
+            shadow = view['shadow']
+            if n_shad > 1:
+                shadow = np.sum(shadow, axis=0) / n_shad
+            if lim is not None:
+                fullSize = np.zeros((camera.dr * sf, camera.dc * sf))
+                minC, maxC, minR, maxR = lim
+                fullSize[minR * sf:maxR * sf, minC * sf:maxC * sf] = shadow
+                shadow = fullSize
+            return shadow
 
     @staticmethod
     def radiance(scene: _RS, camera: _Cam, w: _W2, sf=1, n_shad=1, e=5e-4, lim: _Lims = None, raw=False):
@@ -255,8 +294,8 @@ class Renderer:
         :param scene: the scene to render
         :param camera: the camera
         :param w: list of wavebands to render radiance images for. Each waveband should be either a length-2 tuple
-            giving the waveband's maximum and minimum wavelengths, or a length-3 tuple giving the waveband's minimum
-            wavelength, its effective wavelength (neccessary if using spectral BRDFs), and its maximum wavelength [nm].
+            giving the waveband's minimum and maximum wavelengths, or a length-3 tuple giving the waveband's minimum
+            wavelength, its effective wavelength (necessary if using spectral BRDFs), and its maximum wavelength [nm].
         :param sf: sampling factor controlling number of rays to trace per camera pixel (no. rays per pixel = sf^2),
             for improving rendering quality with subpixel sampling.
         :param n_shad: number of secondary rays to trace per primary ray (where a primary ray is a ray originating from
@@ -284,25 +323,39 @@ class Renderer:
         ls = view['to_light']
 
         for waveband in w:
-            if len(waveband) == 3:
-                brdf = scene.brdfEvaluated(intersection, n, ls, -rays.d, waveband[1])
-            else:
-                brdf = scene.brdfEvaluated(intersection, n, ls, -rays.d)
+            def _calculateRadiance(_ls, _shadow, _light):
+                if len(waveband) == 3:
+                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d, waveband[1])
+                else:
+                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d)
 
-            f = scene.light.fluxDensity(view['p_hit'], waveband[0], waveband[-1])
-            r = rd.surfaceRadiance(f, n, ls, -rays.d, brdf)
-            r[view['shadow']] = 0
+                _f = _light.fluxDensity(view['p_hit'], waveband[0], waveband[-1])
+                _r = rd.surfaceRadiance(_f, n, _ls, -rays.d, _brdf)
+                _r[_shadow] = 0
 
-            if n_shad > 1:
-                r = np.sum(r, axis=0) / n_shad
+                if n_shad > 1:
+                    _r = np.sum(_r, axis=0) / n_shad
 
-            r[np.isnan(r)] = 0
+                _r[np.isnan(_r)] = 0
 
-            if lim is not None:
-                fullSize = np.zeros((camera.dr * sf, camera.dc * sf))
-                minC, maxC, minR, maxR = lim
-                fullSize[minR * sf:maxR * sf, minC * sf:maxC * sf] = r
-                r = fullSize
+                if lim is not None:
+                    _fullSize = np.zeros((camera.dr * sf, camera.dc * sf))
+                    minC, maxC, minR, maxR = lim
+                    _fullSize[minR * sf:maxR * sf, minC * sf:maxC * sf] = _r
+                    _r = _fullSize
+
+                return _r
+
+            if scene.hasMultipleLights:
+                r = None
+                for lightIndex in range(len(ls)):
+                    rFromLight = _calculateRadiance(ls[lightIndex], view['shadow'][lightIndex], scene.light[lightIndex])
+                    if r is None:
+                        r = rFromLight
+                    else:
+                        r += rFromLight
+            else:  # scene has just one light source
+                r = _calculateRadiance(view['to_light'], view['shadow'], scene.light)
 
             if raw:
                 ret += [r]

@@ -17,15 +17,16 @@ import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 _fnp = Union[float, np.ndarray]
-_brdf = Union[BRDF, tBRDF, sBRDF]
-_brdfs = Union[BRDF, tBRDF, sBRDF, List[BRDF], List[tBRDF], List[sBRDF]]
+_BRDF = Union[BRDF, tBRDF, sBRDF]
+_BRDFs = Union[BRDF, tBRDF, sBRDF, List[BRDF], List[tBRDF], List[sBRDF]]
+_Lights = Union[Light, List[Light]]
 
 
 class RenderableObject:
     """Base class for an object which can be rendered using the renderer module
 
     Do not use instances of this class - only use instances of its subclasses"""
-    def __init__(self, brdf: _brdf = None, tex: tx.textureType = None):
+    def __init__(self, brdf: _BRDF = None, tex: tx.textureType = None):
         """ Initialises a new renderable object base class.
 
         :param brdf: optional BRDF describing the reflection properties of the object's surface. Can be a standard BRDF,
@@ -226,7 +227,7 @@ class RenderableObject:
 
 class RenderablePrimitive(RenderableObject):
     """ Class for renderable objects whose surfaces are described by simple geometric primitives"""
-    def __init__(self, geometry: Geometry, brdf: _brdf = None, tex: tx.textureType = None):
+    def __init__(self, geometry: Geometry, brdf: _BRDF = None, tex: tx.textureType = None):
         """ Initialises a new renderable primitive object
 
         :param geometry: the geometric primitive defining its surface.
@@ -396,12 +397,12 @@ class RenderableMesh(RenderableObject):
 
 class RenderableScene:
     """Class for a scene containing renderable objects, of which simulated images can be rendered."""
-    def __init__(self, renderables: List[RenderableObject], light: Light = None, shift: Union['Vec3', bool] = True):
-        """ Initialises a new renderable scene containing the given renderable objects and light.
+    def __init__(self, renderables: List[RenderableObject], light: _Lights = None, shift: Union['Vec3', bool] = True):
+        """ Initialises a new renderable scene containing the given renderable objects and light(s).
 
         :param renderables: list of renderable objects that the scene contains
-        :param light: the light source in the scene
-        :param shift: If set to True, the scene will be shifted prior to ray tracing to centre it on the coordinate
+        :param light: the light source in the scene or list of the light sources in the scene, if any
+        :param shift: if set to True, the scene will be shifted prior to ray tracing to centre it on the coordinate
             origin. If a vector is passed for this argument, the scene will be shifted by that vector prior to ray
             tracing. The scene is returned to its original position after ray tracing. Shifting of the scene can
             significantly improve ray tracing accuracy when all objects within it are located far from the origin.
@@ -413,7 +414,14 @@ class RenderableScene:
                 self._primitives += [renderable]
             elif isinstance(renderable, RenderableMesh):
                 self._meshes += [renderable]
-        self._light = light
+        if light is None:  # no light source
+            self._light = []
+        elif type(light) is list:
+            self._light = light
+        elif type(light) is tuple:
+            self._light = list(light)
+        else:  # single light source
+            self._light = [light]
 
         self._sceneO3D = None
         if type(shift) is Vec3:
@@ -426,7 +434,7 @@ class RenderableScene:
             mesh.mesh.renderingShift = self._renderingShift
 
     @classmethod
-    def polygons(cls, polys: List[Polygon], brdfs: _brdfs, light: Light, shift: Union['Vec3', bool] = True):
+    def polygons(cls, polys: List[Polygon], brdfs: _BRDFs, light: Light, shift: Union['Vec3', bool] = True):
         """ Initialises a renderable scene containing the given polygons, whose reflection properties are defined by the
          given brdf or brdfs.
 
@@ -455,7 +463,7 @@ class RenderableScene:
     def physicallyRenderable(self):
         """Whether all the objects within this scene have physical reflectance data, which is required for physical
         rendering of this scene"""
-        if self._light is None:
+        if self._light is None or len(self._light) == 0:
             return False
         for renderable in self._primitives:
             if not renderable.physicallyRenderable:
@@ -481,13 +489,27 @@ class RenderableScene:
 
     @property
     def light(self):
-        """The scene's light source (or None if the scene has no light source)."""
+        """The scene's light source(s) (or None if the scene has no light source). If the scene has a single light
+        source this property is a Light object; if the scene has multiple light sources this property is a list of
+        Light objects."""
+        if len(self._light) == 0:
+            return None
+        elif len(self._light) == 1:
+            return self._light[0]
         return self._light
 
     @light.setter
     def light(self, new_light: Light):
-        """Sets the scene's light source."""
+        """Sets the scene's light source or sources. For a scene with a single light source, provide a single Light
+        object; for a scene with multiple light sources provide a list of Light objects."""
         self._light = new_light
+
+    @property
+    def hasMultipleLights(self):
+        """Whether the scene has >=2 light sources."""
+        if len(self._light) > 1:
+            return True
+        return False
 
     def intersect(self, ray: Ray, max_dist: float = 1e15) -> Dict[str, np.ndarray]:
         """ Performs an intersection test of the given ray(s) with each of this scene's objects in turn, and returns the
