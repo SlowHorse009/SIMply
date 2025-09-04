@@ -48,6 +48,7 @@ class Camera:
         self._qe = 0.5  # the camera's quantum efficiency, initialised as 0.5 by default (should be updated as needed)
         self._bitdepth = 8  # the camera's bits per pixel, initialised as 8 by default (should be updated as needed)
         self._fwc = 30000  # the camera's full well capacity [e-] (30,000 by default, should be updated as needed)
+        self._offset = 0  # the camera detector's signal offset value [DN]
         self._pixelResponse = lambda x: x  # pixel response function; takes perfect e- count and returns actual e- count
 
     @staticmethod
@@ -277,6 +278,16 @@ class Camera:
         return self.fwc / 2 ** self.bitdepth
 
     @property
+    def offset(self):
+        """The camera detector's signal offset [DN]"""
+        return self._offset
+
+    @offset.setter
+    def offset(self, value):
+        """Updates the camera's signal offset to the given value [DN]"""
+        self._offset = value
+
+    @property
     def pixelResponseFunction(self) -> Callable[[_fnp], _fnp]:
         """ Pixel response function of the camera. Takes as its argument the 'true' electron count the pixel should
         read, and returns the pixel's actual electron count.
@@ -438,13 +449,13 @@ class Camera:
     def digitise(self, electron_count: np.ndarray):
         """ Converts the given pixel electron counts to digital values (ADU).
 
-        This camera's full well capacity (fwc) and bit depth properties should first be updated as required.
+        This camera's full well capacity (fwc), bit depth and offset properties should first be updated as required.
 
         :param electron_count: The number of electrons counted by each pixel.
         :return: The digitised measurement (ADU) for each pixel.
         """
         maxADU = 2 ** self.bitdepth - 1
-        return np.floor(maxADU * electron_count / self.fwc)
+        return np.rint(np.clip(electron_count / self.gain + self._offset, 0, maxADU))
 
     def image(self, flux: np.ndarray, t_exp: float, ew: float):
         """ Takes an at-aperture flux image (i.e. an image of the fluxes [W m^-2] seen by each of this camera's
