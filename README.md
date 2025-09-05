@@ -25,10 +25,18 @@ In both cases, it is also necessary to ensure the following dependencies are ins
 - [gdal](https://pypi.org/project/GDAL/) (optional, for working with geotifs)
 
 ## Software Paper
-SIMply has an accompanying peer-reviewed journal [paper](https://doi.org/10.34133/space.0319) describing its capabilities, showcasing example simulations, and providing validation/verification of SIMply's physical accuracy. The paper is published in the Space: Science & Technology journal, and is accessible [here](https://doi.org/10.34133/space.0319). 
+SIMply has an accompanying peer-reviewed journal [paper](https://doi.org/10.34133/space.0319) describing its capabilities, showcasing example simulations, and providing validation/verification of SIMply's physical accuracy. The paper, published in the journal Space: Science & Technology, is accessible [here](https://doi.org/10.34133/space.0319). 
 
 ## Usage
-See the examples.py file for simple examples of how to set up and run image simulations. More detailed examples and user guides will be released in the near future.
+See the [examples.py]('examples/examples.py) file for simple examples of how to set up and run image simulations. More detailed examples and user guides will be released in the near future.
+
+## Example Outputs
+### Comet 67P
+![c67p image](examples/example_outputs/c67p.png)
+### Moon Colour Image
+![RGB Moon image](examples/example_outputs/moon_rgb.jpg)
+### Spacecraft Rendezvous
+![RPO vid](examples/example_outputs/RPO.gif)
 
 ## Acknowledgements
 
