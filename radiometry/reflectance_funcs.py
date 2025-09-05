@@ -7,7 +7,7 @@ from coremaths.vector import Vec3
 from rendering import textures as tx
 import numpy as np
 import math
-from typing import Callable, Dict, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 _fnp = Union[float, np.ndarray]
 
@@ -378,14 +378,14 @@ class TexturedBRDF:
     A textured BRDF has one or more of its parameters represented by a Texture object, and should be used when spatial
     variation of a BRDF over an object's surface is required.
     """
-    def __init__(self, brdf: Union[Type[BRDF], Callable[[...], BRDF]], params: Tuple[Union[float, tx.textureType], ...]):
+    def __init__(self, brdf: Union[Type[BRDF], Callable[[...], BRDF]], params: List[Union[float, tx.textureType]]):
         """ Initialises a new textured BRDF.
 
         :param brdf: either 1) the BRDF class (NOT an instance of the class) associated with this textured BRDF (e.g.
             BRDFLambert), or 2) a function which takes some number of parameters and returns an instance of the BRDF
             associated with this textured BRDF (e.g. BRDF.lambert).
-        :param params: a tuple of the BRDF's parameter(s), in the order that the BRDF's initialiser takes them as
-            arguments. The paramaters can each be either a float or a Texture object. If multiple parameters are a
+        :param params: a list or tuple of the BRDF's parameter(s), in the order that the BRDF's initialiser takes them
+            as arguments. The paramaters can each be either a float or a Texture object. If multiple parameters are a
             Texture object, they must be of the same texture type.
         """
         self._brdfClass = brdf
