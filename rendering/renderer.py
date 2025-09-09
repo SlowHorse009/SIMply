@@ -17,6 +17,8 @@ from typing import List, Optional, Tuple, Union
 class Renderer:
     """Class containing functions for rendering images of renderable objects/scenes."""
 
+    _rdtype = np.float64  # dtype used for rendering calculations
+
     # Type aliases:
     _Renderable = Union[RenderableObject, RenderableScene]
     _RS = RenderableScene
@@ -29,6 +31,16 @@ class Renderer:
     _t = Union[float, List[float]]
     _Lims = Tuple[int, int, int, int]
     _nanv = Union[float, Tuple[float, float, float]]
+
+    @staticmethod
+    def setRenderingPrecisionToSingle():
+        """Sets the Renderer to use 32-bit floats in rendering calculations."""
+        Renderer._rdtype = np.float32
+
+    @staticmethod
+    def setRenderingPrecisionToDouble():
+        """Sets the Renderer to use 64-bit floats in rendering calculations."""
+        Renderer._rdtype = np.float64
 
     @staticmethod
     def getView(scene: _Renderable, ray: Ray, n_shad=1, e=5e-4):
@@ -325,12 +337,12 @@ class Renderer:
         for waveband in w:
             def _calculateRadiance(_ls, _shadow, _light):
                 if len(waveband) == 3:
-                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d, waveband[1]).astype(np.float32)
+                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d, waveband[1]).astype(Renderer._rdtype)
                 else:
-                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d).astype(np.float32)
+                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d).astype(Renderer._rdtype)
 
-                _f = _light.fluxDensity(view['p_hit'], waveband[0], waveband[-1]).astype(np.float32)
-                _r = rd.surfaceRadiance(_f, n, _ls, -rays.d, _brdf).astype(np.float32)
+                _f = _light.fluxDensity(view['p_hit'], waveband[0], waveband[-1]).astype(Renderer._rdtype)
+                _r = rd.surfaceRadiance(_f, n, _ls, -rays.d, _brdf).astype(Renderer._rdtype)
                 _r[_shadow] = 0
 
                 if n_shad > 1:
@@ -467,8 +479,8 @@ class Renderer:
             else:
                 tExp = t
 
-            flux = cam.convertRadianceImageToEquivalentFlux(radiance).astype(np.float32)
-            im = cam.image(flux, tExp, w[index][1]).astype(np.float32)
+            flux = cam.convertRadianceImageToEquivalentFlux(radiance).astype(Renderer._rdtype)
+            im = cam.image(flux, tExp, w[index][1]).astype(Renderer._rdtype)
 
             radianceImage = math2.binNumpyArray2D(radiance, sf)
 
