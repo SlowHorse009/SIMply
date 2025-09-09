@@ -207,7 +207,7 @@ class PlanetMetadata:
         :param path: path to the file containing the metatdata
         :param source: source string identifying the type of file the metadata is being read from
         """
-        if source == '.IMG' or source == '.LBL':
+        if source == '.IMG' or source == 'IMG' or source == '.LBL' or source == 'LBL':
             self._readTextMetadataPDS(path)
         elif source[-6:] == 'geotif':
             self._readFromWGS84Geotiff(path)
