@@ -44,6 +44,7 @@ def test_fullRenderingFlow():
 
     cam.frame = Frame.withW(Vec3((0, -1, 0)), origin=Vec3((0, 400, 0)))
 
+    Renderer.setRenderingPrecisionToDouble()
     img, radiance = Renderer.image(scene, cam, 0.01, [500, 501, 502], sf=2, n_shad=1)
     tex_img = Renderer.texture(scene, cam)
 
