@@ -1,4 +1,4 @@
-![SIMply logo](simply_logo_plum.png)
+![SIMply logo](simply_banner.png)
 
 # SIMply: Python Image Simulator for Planetary Exploration
 SIMply is an open-source python tool for simulating physically realistic images.
@@ -26,6 +26,8 @@ In both cases, it is also necessary to ensure the following dependencies are ins
 
 ## Software Paper
 SIMply has an accompanying peer-reviewed journal [paper](https://doi.org/10.34133/space.0319) describing its capabilities, showcasing example simulations, and providing validation/verification of SIMply's physical accuracy. The paper, published in the journal Space: Science & Technology, is accessible [here](https://doi.org/10.34133/space.0319). 
+
+SIMply is supporting a number of research [projects](https://spaceborneplanetaryimaging.com/).
 
 ## Usage
 See the [examples.py]('examples/examples.py) file for simple examples of how to set up and run image simulations. More detailed examples and user guides will be released in the near future.
