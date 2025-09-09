@@ -73,7 +73,7 @@ class Renderer:
 
             def _getIlluminationConditions(_light: Light):
                 if n_shad == 0:  # no shadow testing
-                    _shadow = np.full(ray.numpyShape, 0)
+                    _shadow = np.full(ray.numpyShape, 0, dtype=bool)
                     _ls = (_light.pos - pHit).norm
                 else:
                     if n_shad == 1:  # shadow testing with 1 secondary ray per primary ray
@@ -325,12 +325,12 @@ class Renderer:
         for waveband in w:
             def _calculateRadiance(_ls, _shadow, _light):
                 if len(waveband) == 3:
-                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d, waveband[1])
+                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d, waveband[1]).astype(np.float32)
                 else:
-                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d)
+                    _brdf = scene.brdfEvaluated(intersection, n, _ls, -rays.d).astype(np.float32)
 
-                _f = _light.fluxDensity(view['p_hit'], waveband[0], waveband[-1])
-                _r = rd.surfaceRadiance(_f, n, _ls, -rays.d, _brdf)
+                _f = _light.fluxDensity(view['p_hit'], waveband[0], waveband[-1]).astype(np.float32)
+                _r = rd.surfaceRadiance(_f, n, _ls, -rays.d, _brdf).astype(np.float32)
                 _r[_shadow] = 0
 
                 if n_shad > 1:
@@ -467,8 +467,8 @@ class Renderer:
             else:
                 tExp = t
 
-            flux = cam.convertRadianceImageToEquivalentFlux(radiance)
-            im = cam.image(flux, tExp, w[index][1])
+            flux = cam.convertRadianceImageToEquivalentFlux(radiance).astype(np.float32)
+            im = cam.image(flux, tExp, w[index][1]).astype(np.float32)
 
             radianceImage = math2.binNumpyArray2D(radiance, sf)
 
