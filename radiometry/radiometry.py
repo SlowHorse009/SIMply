@@ -6,13 +6,15 @@ import os
 from simply_utils import paths, constants as consts
 from coremaths import geometry as gm
 from coremaths.vector import Vec3
-from radiometry.reflectance_funcs import BRDF
+import radiometry.reflectance_funcs as rf
 import math
 import numpy as np
 from scipy import interpolate
 import pandas as pd
 from matplotlib import pyplot as plt
-from typing import Union, Optional, List, Callable
+from typing import Union, Optional, List, Callable, TYPE_CHECKING
+if TYPE_CHECKING:
+    from radiometry.reflectance_funcs import BRDF
 
 _fnp = Union[float, np.ndarray]
 _inp = Union[int, np.ndarray]
@@ -166,7 +168,7 @@ def lambertSurfaceRadiance(irr, dhr):
     :param dhr: the directional hemispherical reflectance of the surface (equal to its normal albedo)
     :return: the radiance of the Lambertian surface [W m^-2 sr^-1]
     """
-    brdf = BRDF.lambert(dhr)
+    brdf = rf.BRDF.lambert(dhr)
     return irr * brdf.value
 
 
@@ -200,7 +202,7 @@ def lambertSphereIntensity(f: _fnp, ang: _fnp, r: _fnp, albedo: _fnp, bond=True)
     return albedo * r ** 2 * f * PhaseFunctions.lambertSphere(ang)
 
 
-def surfaceRadiance(f: _fnp, n: 'Vec3', ls: 'Vec3', v: 'Vec3', brdf: Union[BRDF, _fnp]) -> _fnp:
+def surfaceRadiance(f: _fnp, n: 'Vec3', ls: 'Vec3', v: 'Vec3', brdf: Union['BRDF', _fnp]) -> _fnp:
     """ The radiance of light reflected from a surface of given BRDF
 
     :param f: the flux incident on the surface [W m^-2]
@@ -212,7 +214,7 @@ def surfaceRadiance(f: _fnp, n: 'Vec3', ls: 'Vec3', v: 'Vec3', brdf: Union[BRDF,
     :return: the surface's radiance [W m^-2 sr^-1]
     """
     irr = f * n.dot(ls)  # the normal irradiance of the surface
-    if isinstance(brdf, BRDF):
+    if isinstance(brdf, rf.BRDF):
         # brdf is an instance of a BRDF class and needs evaluating for the given reflection geometry to get the ratio
         # of reflected radiance to incident irradiance
         return irr * brdf.evaluate(n, ls, v)
@@ -239,7 +241,7 @@ def surfaceElementIntensity(f: _fnp, sa: _fnp, n: 'Vec3', ls: 'Vec3', v: 'Vec3',
     return proj * surfaceRadiance(f, n, ls, v, brdf)
 
 
-def convexPolyIntensity(poly: _poly, brdf: Union[BRDF, List[BRDF]], f: _fnp, ls: Vec3, v: Vec3) -> _fnp:
+def convexPolyIntensity(poly: _poly, brdf: Union['BRDF', List['BRDF']], f: _fnp, ls: Vec3, v: Vec3) -> _fnp:
     """ Calculates the total intensity reflected by the given polygon or convex polyhedron under the given illumination
     and observation geometry. The intensity is calculated under the assumption that the light source and observer
     are far from the object (such that incident flux, angle of reflection and angle of incidence are constant over
