@@ -211,19 +211,21 @@ class Mesh:
                     z = float(line[3]) * sf
                     vertices += [[x, y, z]]
                 elif line[0] == 'f':
-                    element1 = line[1].split('/')
-                    element2 = line[2].split('/')
-                    element3 = line[3].split('/')
-                    v1 = int(element1[0]) - 1
-                    v2 = int(element2[0]) - 1
-                    v3 = int(element3[0]) - 1
-                    tris += [[v1, v2, v3]]
-                    if len(element1) > 1 and len(element2) > 1 and len(element3) > 1:
-                        if element1[1] != '' and element2[1] != '' and element2[1] != '':
-                            vti1 = int(element1[1]) - 1
-                            vti2 = int(element2[1]) - 1
-                            vti3 = int(element3[1]) - 1
-                            triVertTexIndices += [[vti1, vti2, vti3]]
+                    nVerts = len(line) - 1  # number of vertices defining the face (will be >= 3)
+                    for j in range(nVerts - 2):  # form triangles from the face's vertices
+                        element1 = line[1].split('/')
+                        element2 = line[j + 2].split('/')
+                        element3 = line[j + 3].split('/')
+                        v1 = int(element1[0]) - 1
+                        v2 = int(element2[0]) - 1
+                        v3 = int(element3[0]) - 1
+                        tris += [[v1, v2, v3]]
+                        if len(element1) > 1 and len(element2) > 1 and len(element3) > 1:
+                            if element1[1] != '' and element2[1] != '' and element2[1] != '':
+                                vti1 = int(element1[1]) - 1
+                                vti2 = int(element2[1]) - 1
+                                vti3 = int(element3[1]) - 1
+                                triVertTexIndices += [[vti1, vti2, vti3]]
                 elif line[0] == 'vt':
                     u = float(line[1])
                     v = 1 - float(line[2])
