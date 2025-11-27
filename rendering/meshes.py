@@ -529,6 +529,8 @@ class Mesh:
         prim_id_int = prim_id_int.astype(int)
         baseSlice = (slice(None),) * prim_id.ndim
 
+        prim_id_int[prim_id_int > self.nTris] = 0  # prevents out-of-range indexing from other meshes' prim_ids
+
         vert1 = self._vertices[self._tris[prim_id_int][baseSlice + (0,)]]
         vert2 = self._vertices[self._tris[prim_id_int][baseSlice + (1,)]]
         vert3 = self._vertices[self._tris[prim_id_int][baseSlice + (2,)]]
