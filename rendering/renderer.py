@@ -11,6 +11,7 @@ from cameras.cameras import CameraTwoWay
 from radiometry import radiometry as rd
 from radiometry.radiometry import SpectralDensityCurve as SDC
 from rendering.lights import Light
+import time
 from typing import List, Optional, Tuple, Union
 
 
@@ -18,6 +19,7 @@ class Renderer:
     """Class containing functions for rendering images of renderable objects/scenes."""
 
     _rdtype = np.float64  # dtype used for rendering calculations
+    printRenderingTimes = False  # whether time taken to perform a render will be printed to console
 
     # Type aliases:
     _Renderable = Union[RenderableObject, RenderableScene]
@@ -169,6 +171,8 @@ class Renderer:
         :return: texture image of the scene
         """
 
+        t0 = time.time()
+
         rays = camera.pixelsLOS(sf=sf, region=lim)
         ret = scene.intersect(rays)
 
@@ -202,6 +206,9 @@ class Renderer:
             ret[..., 0] = imgR
             ret[..., 1] = imgG
             ret[..., 2] = imgB
+            if Renderer.printRenderingTimes:
+                t1 = time.time()
+                print("-Image render duration: {}s".format(t1 - t0))
             return ret
         else:
             rgb_channel = 2
@@ -209,6 +216,9 @@ class Renderer:
                 rgb_channel = 1
             elif chan == 'b':
                 rgb_channel = 3
+            if Renderer.printRenderingTimes:
+                t1 = time.time()
+                print("-Image render duration: {}s".format(t1 - t0))
             return getTexImageForChannel(rgb_channel)
 
     @staticmethod
@@ -324,6 +334,8 @@ class Renderer:
         if not scene.physicallyRenderable:
             raise ValueError('scene must have a light source, and BRDFs assigned to objects, to be physically rendered')
 
+        t0 = time.time()
+
         rays = camera.pixelsLOS(sf=sf, region=lim)
 
         ret: List[np.ndarray] = []
@@ -375,6 +387,10 @@ class Renderer:
                 r = camera.applyPSF(r)
                 r = camera.downsampleToDetectorPixels(r) / sf ** 2
                 ret += [r]
+
+        if Renderer.printRenderingTimes:
+            t1 = time.time()
+            print("-Image render duration: {}s".format(t1 - t0))
 
         return ret
 
