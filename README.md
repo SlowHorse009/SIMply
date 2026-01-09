@@ -40,6 +40,9 @@ See the [examples.py]('examples/examples.py) file for simple examples of how to 
 ### Spacecraft Rendezvous
 ![RPO vid](examples/example_outputs/RPO.gif)
 
+## Contact
+Want to work together? Require support integrating SIMply's capabilities into a project? Get in touch [here](https://spaceborneplanetaryimaging.com/contact/) for collaboration and consulting enquiries.
+
 ## Acknowledgements
 
 [![numpy](http://img.shields.io/badge/powered%20by-NumPy-blue.svg?style=flat)](https://numpy.org/)
