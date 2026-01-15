@@ -1075,7 +1075,7 @@ class Mat3:
     def __pow__(self, power: int, modulo=None) -> 'Mat3':
         result = self
         for _ in range(power - 1):
-            result = result * result
+            result = result * self
         return result
 
     def __str__(self):
