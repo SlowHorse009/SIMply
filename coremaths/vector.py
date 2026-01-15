@@ -526,7 +526,7 @@ class Vec3:
         b = other
         n = axis.norm
         dot = self.dot(other)
-        det = self._x * b.y * n.z + self._z + b.x * n.y + self._y * b.z * n.x - self._z * b.y * n.x - self._x * b.z * n.y - self._y * b.x * n.z
+        det = self._x * b.y * n.z + self._z * b.x * n.y + self._y * b.z * n.x - self._z * b.y * n.x - self._x * b.z * n.y - self._y * b.x * n.z
         try:
             return math.atan2(det, dot)
         except TypeError:
